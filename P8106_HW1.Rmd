@@ -6,6 +6,7 @@ author:
 date: "2/16/2025"
 output:
   pdf_document:
+    latex_engine: xelatex
     toc: true
     toc_depth: 2
 ---
@@ -15,3 +16,87 @@ output:
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 
 ```
+
+## Loading libraries
+
+```{r libraries}
+
+library(ISLR)
+library(glmnet)
+library(caret)
+library(tidymodels)
+library(corrplot)
+library(ggplot2)
+library(plotmo)
+library(ggrepel)
+
+```
+
+## Question (a): Lasso Model
+
+To start, we load the training and testing data and subsequently set a seed for reproducibility.
+
+Next, we initialise 10-fold cross-validation to partition the training data into 10 equal subsets. This allows training the model on 9 folds while validating on the final fold. This ensures we evaluate the performance of the model, while avoiding overfitting.
+
+```{r Qa_data_prep}
+
+# Load training and testing data
+
+training_data <- read.csv("housing_training.csv")
+testing_data <- read.csv("housing_test.csv")
+
+set.seed(29)  # Ensure results are reproducible
+
+# Using 10 fold cross-validation
+ctrl1 <- trainControl(method = "cv", number = 10)
+
+```
+
+Next, we proceed to fit a lasso regression model using the training data. Sale_Price is the outcome variable, with all other variables as predictors. The lasso model is tuned over a sequence of 100 lambda values ranging from exp(6) to exp(-5).
+
+```{r Qa_lasso_fit}
+
+# Fit the Lasso model
+
+lasso.fit  <- train(
+  Sale_Price ~ .,
+  data = training_data,
+  method = "glmnet",
+  tuneGrid = expand.grid(alpha = 1, lambda = exp(seq(6, -5, length = 100))),
+  trControl = ctrl1
+)
+
+# Plot
+
+plot(lasso.fit, xTrans = log)
+
+```
+
+Based on the plot, it appears as though the optimal lambda value is around exp(4), as this is where the RMSE is minimised. Higher lambda values (i.e., greater penalisation) appear to result in poorer model performance, likely due to excessive shrinkage forcing too many coefficients to zero, leading to underfitting.
+
+```{r}
+
+# Find optimal tuning parameter
+
+lasso.fit$bestTune
+
+# Extracting coefficients for each predictor, at the optimal lambda
+
+coef(lasso.fit$finalModel, lasso.fit$bestTune$lambda)
+
+```
+
+Note that at the optimal lambda value, most of the predictors remain in the model. However, some are shrunk to zero (i.e., Second_Flr_SF, Fireplace_QuGood) during the variable selection process, and therefore removed from the model.
+
+```{r}
+
+# Finding RMSE
+
+lasso_preds <- predict(lasso.fit, newdata = testing_data)  
+rmse <- sqrt(mean((lasso_preds - testing_data$Sale_Price)^2))
+print(rmse)
+
+```
+
+For the lasso model, the optimal tuning parameter lambda is **68.18484**, representing where RMSE is minimised. The test error (RMSE) at this lambda is **20969.2**.
+
