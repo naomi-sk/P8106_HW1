@@ -103,7 +103,7 @@ For the lasso model, the optimal tuning parameter lambda is **68.18484**, repres
 
 ```{r}
 
-# Using 1se cross-validation
+# Using 1se cross-validation. Code from: https://www.rdocumentation.org/packages/caret/versions/6.0-92/topics/oneSE
 
 ctrl_1se <- trainControl(
   method = "cv",
