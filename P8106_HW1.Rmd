@@ -48,6 +48,7 @@ testing_data <- read.csv("housing_test.csv")
 set.seed(29)  # Ensure results are reproducible
 
 # Using 10 fold cross-validation
+
 ctrl1 <- trainControl(method = "cv", number = 10)
 
 ```
@@ -86,7 +87,7 @@ coef(lasso.fit$finalModel, lasso.fit$bestTune$lambda)
 
 ```
 
-Note that at the optimal lambda value, most of the predictors remain in the model. However, some are shrunk to zero (i.e., Second_Flr_SF, Fireplace_QuGood) during the variable selection process, and therefore removed from the model.
+Note that at the optimal lambda value, most of the predictors remain in the model. However, some are shrunk to zero (i.e., Second_Flr_SF, Fireplace_QuGood) during the variable selection process, and removed from the model. Therefore, this final model includes 37 predictors.
 
 ```{r}
 
@@ -100,3 +101,38 @@ print(rmse)
 
 For the lasso model, the optimal tuning parameter lambda is **68.18484**, representing where RMSE is minimised. The test error (RMSE) at this lambda is **20969.2**.
 
+```{r}
+
+# Using 1se cross-validation
+
+ctrl_1se <- trainControl(
+  method = "cv",
+  selectionFunction = "oneSE"  
+)
+
+# Fit the lasso model using 1se
+
+lasso_1se_fit <- train(
+  Sale_Price ~ .,
+  data = training_data,
+  method = "glmnet",
+  tuneGrid = expand.grid(
+    alpha = 1,
+    lambda = exp(seq(6, -5, length = 100))  
+  ),
+  trControl = ctrl_1se
+)
+
+# Optimal lambda using 1SE 
+
+lasso_lambda_1se <- lasso_1se_fit$bestTune$lambda
+print(lasso_lambda_1se)
+
+# Extracting coefficients for each predictor, at the optimal lambda
+
+coef(lasso_1se_fit$finalModel, s = lasso_lambda_1se)
+
+```
+
+Using the 1SE rule, the optimal lambda is 403.4288. During the variable selection process, variables Second_Flr_SF, Fireplace_QuNo_Fireplace, and Exter_QualGood are removed from the model.
+When the 1SE rule is applied, there are 36 predictors included in the model, which is 1 fewer than the original lasso model.
