@@ -1,0 +1,17 @@
+---
+title: "P8106_HW1"
+author:
+- "Naomi Simon-Kumar"
+- ns3782
+date: "2/16/2025"
+output:
+  pdf_document:
+    toc: true
+    toc_depth: 2
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+
+```
