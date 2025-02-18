@@ -136,3 +136,71 @@ coef(lasso_1se_fit$finalModel, s = lasso_lambda_1se)
 
 Using the 1SE rule, the optimal lambda is 403.4288. During the variable selection process, variables Second_Flr_SF, Fireplace_QuNo_Fireplace, and Exter_QualGood are removed from the model.
 When the 1SE rule is applied, there are 36 predictors included in the model, which is 1 fewer than the original lasso model.
+
+## Question (b): Elastic Net
+
+To fit the elastic net model, I began with a wide lambda range.
+
+```{r}
+
+# Set seed to ensure reproducibility
+
+set.seed(16)
+
+# Fit elastic net model
+# Tuning the different lambda ranges
+
+enet.fit <- train(Sale_Price ~ .,
+                  data = training_data,
+                  method = "glmnet",
+                  tuneGrid = expand.grid(alpha = seq(0, 1, length = 21), 
+                                         lambda = exp(seq(6, -5, length = 100))),
+                  trControl = ctrl1)
+
+print(enet.fit$bestTune)
+
+# Cross validation plot
+
+plot(enet.fit, xTrans = log)
+
+```
+
+After reviewing the cross-validation plot, I refined the lambda range.
+
+```{r}
+
+# Increasing upper range
+
+enet.fit <- train(Sale_Price ~ .,
+                  data = training_data,
+                  method = "glmnet",
+                  tuneGrid = expand.grid(alpha = seq(0, 1, length = 21), 
+                                         lambda = exp(seq(7, 0, length = 100))),
+                  trControl = ctrl1)
+
+# Cross validation plot
+
+plot(enet.fit, xTrans = log)
+
+# Optimal lambda
+
+print(enet.fit$bestTune)
+
+```
+
+The cross validation plot shows the RMSE values were fairly stable until ~exp(6). Therefore, the selected tuning parameters are alpha = 0.05 and lambda = 622.8735. 
+
+```{r}
+
+# Predictions using Testing dataset
+
+enet.pred <- predict(enet.fit, newdata = testing_data)
+
+# Test error
+
+test_mse <- mean((enet.pred - testing_data$Sale_Price)^2)
+print(test_mse)
+
+```
+
+From this, the test error of the model is 438172327.
