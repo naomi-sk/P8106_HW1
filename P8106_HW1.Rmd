@@ -57,13 +57,16 @@ Next, we proceed to fit a lasso regression model using the training data. Sale_P
 
 ```{r Qa_lasso_fit}
 
+set.seed(29)  # Ensure results are reproducible
+
 # Fit the Lasso model
 
 lasso.fit  <- train(
   Sale_Price ~ .,
   data = training_data,
   method = "glmnet",
-  tuneGrid = expand.grid(alpha = 1, lambda = exp(seq(6, -5, length = 100))),
+  tuneGrid = expand.grid(alpha = 1, 
+                         lambda = exp(seq(6, -5, length = 100))),
   trControl = ctrl1
 )
 
@@ -77,6 +80,8 @@ Based on the plot, it appears as though the optimal lambda value is around exp(4
 
 ```{r}
 
+set.seed(29)  # Ensure results are reproducible
+
 # Find optimal tuning parameter
 
 lasso.fit$bestTune
@@ -87,9 +92,11 @@ coef(lasso.fit$finalModel, lasso.fit$bestTune$lambda)
 
 ```
 
-Note that at the optimal lambda value, most of the predictors remain in the model. However, some are shrunk to zero (i.e., Second_Flr_SF, Fireplace_QuGood) during the variable selection process, and removed from the model. Therefore, this final model includes 37 predictors.
+Note that at the optimal lambda value, most of the predictors remain in the model. However, some are shrunk to zero (i.e., Second_Flr_SF, Fireplace_QuGood) during the variable selection process, and removed from the model. Therefore, this final model includes **37 predictors**.
 
 ```{r}
+
+set.seed(29)  # Ensure results are reproducible
 
 # Finding RMSE
 
@@ -103,7 +110,10 @@ For the lasso model, the optimal tuning parameter lambda is **68.18484**, repres
 
 ```{r}
 
-# Using 1se cross-validation. Code from: https://www.rdocumentation.org/packages/caret/versions/6.0-92/topics/oneSE
+set.seed(29)  # Ensure results are reproducible
+
+# Using 1se cross-validation. 
+# Code from: https://www.rdocumentation.org/packages/caret/versions/6.0-92/topics/oneSE
 
 ctrl_1se <- trainControl(
   method = "cv",
@@ -134,8 +144,8 @@ coef(lasso_1se_fit$finalModel, s = lasso_lambda_1se)
 
 ```
 
-Using the 1SE rule, the optimal lambda is 403.4288. During the variable selection process, variables Second_Flr_SF, Fireplace_QuNo_Fireplace, and Exter_QualGood are removed from the model.
-When the 1SE rule is applied, there are 36 predictors included in the model, which is 1 fewer than the original lasso model.
+Using the 1SE rule, the optimal lambda is **403.4288**. During the variable selection process, variables Second_Flr_SF, Fireplace_QuNo_Fireplace, and Exter_QualGood are removed from the model.
+When the 1SE rule is applied, there are **36 predictors** included in the model, which is 1 fewer than the original lasso model.
 
 ## Question (b): Elastic Net
 
@@ -157,6 +167,8 @@ enet.fit <- train(Sale_Price ~ .,
                                          lambda = exp(seq(6, -5, length = 100))),
                   trControl = ctrl1)
 
+# Results
+
 print(enet.fit$bestTune)
 
 # Cross validation plot
@@ -169,13 +181,17 @@ After reviewing the cross-validation plot, I refined the lambda range.
 
 ```{r}
 
-# Increasing upper range
+# Set seed to ensure reproducibility
+
+set.seed(16)
+
+# Adjusting
 
 enet.fit <- train(Sale_Price ~ .,
                   data = training_data,
                   method = "glmnet",
                   tuneGrid = expand.grid(alpha = seq(0, 1, length = 21), 
-                                         lambda = exp(seq(7, 0, length = 100))),
+                                         lambda = exp(seq(5.7, -2, length = 100))),
                   trControl = ctrl1)
 
 # Cross validation plot
@@ -188,19 +204,31 @@ print(enet.fit$bestTune)
 
 ```
 
-The cross validation plot shows the RMSE values were fairly stable until ~exp(6). Therefore, the selected tuning parameters are alpha = 0.05 and lambda = 622.8735. 
+The cross validation plot shows the RMSE values were fairly stable at lower regularisation values, but increasing steeply when log(lambda) ≈ 6. Therefore, the selected tuning parameters are **alpha = 0.1** and **lambda = 298.8674**.
 
 ```{r}
 
-# Predictions using Testing dataset
+# Set seed to ensure reproducibility
+
+set.seed(16)
+
+# Predictions using testing dataset
 
 enet.pred <- predict(enet.fit, newdata = testing_data)
 
 # Test error
 
 test_mse <- mean((enet.pred - testing_data$Sale_Price)^2)
+
+# Results
+
 print(test_mse)
 
 ```
 
-From this, the test error of the model is 438172327.
+From this, the test error of the model is **440832286**.
+
+
+
+
+
