@@ -29,6 +29,8 @@ library(corrplot)
 library(ggplot2)
 library(plotmo)
 library(ggrepel)
+library(pls)
+library(knitr)
 
 ```
 
@@ -38,7 +40,7 @@ To start, we load the training and testing data and subsequently set a seed for 
 
 Next, we initialise 10-fold cross-validation to partition the training data into 10 equal subsets. This allows training the model on 9 folds while validating on the final fold. This ensures we evaluate the performance of the model, while avoiding overfitting.
 
-```{r Qa_data_prep}
+```{r}
 
 # Load training and testing data
 
@@ -55,7 +57,7 @@ ctrl1 <- trainControl(method = "cv", number = 10)
 
 Next, we proceed to fit a lasso regression model using the training data. Sale_Price is the outcome variable, with all other variables as predictors. The lasso model is tuned over a sequence of 100 lambda values ranging from exp(6) to exp(-5).
 
-```{r Qa_lasso_fit}
+```{r}
 
 set.seed(29)  # Ensure results are reproducible
 
@@ -101,8 +103,8 @@ set.seed(29)  # Ensure results are reproducible
 # Finding RMSE
 
 lasso_preds <- predict(lasso.fit, newdata = testing_data)  
-rmse <- sqrt(mean((lasso_preds - testing_data$Sale_Price)^2))
-print(rmse)
+lasso_rmse <- sqrt(mean((lasso_preds - testing_data$Sale_Price)^2))
+print(lasso_rmse)
 
 ```
 
@@ -218,17 +220,108 @@ enet.pred <- predict(enet.fit, newdata = testing_data)
 
 # Test error
 
-test_mse <- mean((enet.pred - testing_data$Sale_Price)^2)
+enet_test_mse <- mean((enet.pred - testing_data$Sale_Price)^2)
 
 # Results
 
-print(test_mse)
+print(enet_test_mse)
 
 ```
 
 From this, the test error of the model is **440832286**.
 
+```{r}
+
+# Set seed to ensure reproducibility
+
+set.seed(16)
 
 
+```
 
+Yes, it is possible to apply the 1SE rule to selecting tuning parameters for elastic net. The elastic net method includes penalties from both ridge regression and lasso (the mixing parameter alpha that determines the balance between ridge and lasso penalties, and the overall regularisation strength lambda). The 1SE rule is defined as the most regularised model such that error is within one standard error of the minimum.
+
+Therefore, using the 1SE rule, it is possible to select the most regularised model (i.e., the largest lambda) for each alpha value that has error within one standard error of the minimum, then compare across different alpha values to give the effective regularisation via the ridge-type penalty and feature selection via the lasso penalty, as determined by cross-validation.
+
+## Question (c): Partial least squares
+
+I proceeded with fitting the partial least squares model.
+
+```{r}
+
+# Set seed for reproducibility
+
+set.seed(29)
+
+# Fitting the model
+
+pls_mod <- plsr(Sale_Price ~ .,
+                data = training_data,
+                scale = TRUE,
+                validation = "CV")
+
+summary(pls_mod)
+
+# Determine the optimal number of components
+
+cv_mse <- RMSEP(pls_mod)
+
+ncomp_cv <- which.min(cv_mse$val[1,,]) - 1
+
+# Optimal number of components
+
+print(ncomp_cv)
+
+```
+
+Based on the computation above, the optimal number of components is **8**. 
+
+```{r}
+
+# Set seed for reproducibility
+
+set.seed(29)
+
+# Calculate Test MSE
+
+y2 <- testing_data$Sale_Price
+
+predy2_pls <- predict(pls_mod, newdata = testing_data,
+                      ncomp = ncomp_cv)
+
+pls_test_mse <- mean((y2 - predy2_pls)^2)
+
+print(pls_test_mse)
+
+```
+
+The test error for this model is **440217938**.
+
+## Question (d): Choose the best model for predicting the response and explain your choice.
+
+
+```{r}
+
+# Comparison table of models
+# Code from: https://bookdown.org/yihui/rmarkdown-cookbook/kable.html
+
+comparison_table <- tibble(
+  Model = c("LASSO (min)", "Elastic Net", "Partial Least Square Regression"),
+  Test_Error = c(lasso_rmse, enet_test_mse, pls_test_mse)
+)
+
+# Using kable to present table
+
+knitr::kable(comparison_table)
+
+```
+
+
+## Question (e): Retrain model using glmnet
+
+
+```{r}
+
+
+```
 
