@@ -103,7 +103,9 @@ set.seed(29)  # Ensure results are reproducible
 # Finding RMSE
 
 lasso_preds <- predict(lasso.fit, newdata = testing_data)  
+
 lasso_rmse <- sqrt(mean((lasso_preds - testing_data$Sale_Price)^2))
+
 print(lasso_rmse)
 
 ```
@@ -193,7 +195,7 @@ enet.fit <- train(Sale_Price ~ .,
                   data = training_data,
                   method = "glmnet",
                   tuneGrid = expand.grid(alpha = seq(0, 1, length = 21), 
-                                         lambda = exp(seq(5.7, -2, length = 100))),
+                                         lambda = exp(seq(7, -2, length = 100))),
                   trControl = ctrl1)
 
 # Cross validation plot
@@ -206,7 +208,7 @@ print(enet.fit$bestTune)
 
 ```
 
-The cross validation plot shows the RMSE values were fairly stable at lower regularisation values, but increasing steeply when log(lambda) ≈ 6. Therefore, the selected tuning parameters are **alpha = 0.1** and **lambda = 298.8674**.
+The cross validation plot shows the RMSE values were fairly stable at lower regularisation values, but increasing steeply when log(lambda) ≈ 6. Therefore, the selected tuning parameters are **alpha = 0.05** and **lambda = 635.5848**.
 
 ```{r}
 
@@ -228,7 +230,7 @@ print(enet_test_mse)
 
 ```
 
-From this, the test error of the model is **440832286**.
+From this, the test error of the model is **438041526**.
 
 ```{r}
 
@@ -236,12 +238,55 @@ From this, the test error of the model is **440832286**.
 
 set.seed(16)
 
+# Applying 1SE rule to elastic net model
+
+enet_1se_fit <- train(
+  Sale_Price ~ .,
+  data = training_data,
+  method = "glmnet",
+  tuneGrid = expand.grid(
+    alpha = seq(0, 1, length = 21),  
+    lambda = exp(seq(7, -2, length = 100))  
+  ),
+  trControl = ctrl_1se
+)
+
+enet_1se_fit$bestTune$lambda
+
+enet_1se_fit$bestTune$alpha
 
 ```
 
 Yes, it is possible to apply the 1SE rule to selecting tuning parameters for elastic net. The elastic net method includes penalties from both ridge regression and lasso (the mixing parameter alpha that determines the balance between ridge and lasso penalties, and the overall regularisation strength lambda). The 1SE rule is defined as the most regularised model such that error is within one standard error of the minimum.
 
 Therefore, using the 1SE rule, it is possible to select the most regularised model (i.e., the largest lambda) for each alpha value that has error within one standard error of the minimum, then compare across different alpha values to give the effective regularisation via the ridge-type penalty and feature selection via the lasso penalty, as determined by cross-validation.
+
+Based on our data, the 1SE rule model parameters are alpha = **0** and lambda = **1096.633**. Given that alpha = 0, this indicates ridge regression was the optimal model.
+
+I proceeded to find the test error of the 1SE model.
+
+```{r}
+
+# Set seed to ensure reproducibility
+
+set.seed(16)
+
+# Predictions using testing dataset for 1SE model
+
+enet_1se_pred <- predict(enet_1se_fit, newdata = testing_data)
+
+# Test error
+
+enet_1se_test_mse <- mean((enet_1se_pred - testing_data$Sale_Price)^2)
+
+# Results
+
+print(enet_1se_test_mse)
+
+```
+
+The test error for the 1SE rule elastic net model is **426357707**.
+
 
 ## Question (c): Partial least squares
 
@@ -305,9 +350,14 @@ The test error for this model is **440217938**.
 # Comparison table of models
 # Code from: https://bookdown.org/yihui/rmarkdown-cookbook/kable.html
 
+# Convert MSE to RMSE for comparison
+enet_test_rmse <- sqrt(enet_test_mse)
+pls_test_rmse <- sqrt(pls_test_mse)
+
+
 comparison_table <- tibble(
-  Model = c("LASSO (min)", "Elastic Net", "Partial Least Square Regression"),
-  Test_Error = c(lasso_rmse, enet_test_mse, pls_test_mse)
+  Model = c("Lasso", "Elastic Net", "Partial Least Square Regression"),
+  Test_Error = c(lasso_rmse, enet_test_rmse, pls_test_rmse)
 )
 
 # Using kable to present table
