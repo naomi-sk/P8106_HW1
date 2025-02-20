@@ -146,6 +146,14 @@ print(lasso_lambda_1se)
 
 coef(lasso_1se_fit$finalModel, s = lasso_lambda_1se)
 
+# Lasso 1SE RMSE
+
+lasso_1SE_preds <- predict(lasso_1se_fit, newdata = testing_data)  
+
+lasso_1SE_rmse <- sqrt(mean((lasso_1SE_preds - testing_data$Sale_Price)^2))
+
+print(lasso_1SE_rmse)
+
 ```
 
 Using the 1SE rule, the optimal lambda is **403.4288**. During the variable selection process, variables Second_Flr_SF, Fireplace_QuNo_Fireplace, and Exter_QualGood are removed from the model.
@@ -353,11 +361,12 @@ The test error for this model is **440217938**.
 # Convert MSE to RMSE for comparison
 enet_test_rmse <- sqrt(enet_test_mse)
 pls_test_rmse <- sqrt(pls_test_mse)
+enet_1se_test_rmse <- sqrt(enet_1se_test_mse)
 
 
 comparison_table <- tibble(
-  Model = c("Lasso", "Elastic Net", "Partial Least Square Regression"),
-  Test_Error = c(lasso_rmse, enet_test_rmse, pls_test_rmse)
+  Model = c("Lasso", "Lasso 1SE", "Elastic Net", "Elastic Net 1SE", "Partial Least Square Regression"),
+  Test_Error = c(lasso_rmse, lasso_1SE_rmse, enet_test_rmse, enet_1se_test_rmse, pls_test_rmse)
 )
 
 # Using kable to present table
@@ -366,6 +375,11 @@ knitr::kable(comparison_table)
 
 ```
 
+Based on the comparison table, the lasso model with the 1SE rule applied appears to perform the best as it has the lowest test error (RMSE = 20511.62) while undertaking feature selection. As discussed in class, the 1SE rule chooses the most regularised model whose error is within one standard error of the minimum, which allows for a parsimonious model that may generalise better to new data while maintaining predictive performance.
+
+In the case of predicting the housing sale price, the lasso with 1SE model removed various less important predictors during variable selection, which reduced the overall complexity of the model while keeping good predictive performance. This aligns with the bias-variance tradeoff, in which with increasing regularisation (lambda), bias tends to increase but variance decreases, leading to improved generalisation.
+
+The better performance of the lasso with 1SE compared to methods like elastic net and partial least squares regression suggests that this method is suitable as it provided the optimal balance in the bias-variance tradeoff for this housing price prediction task. This would be plausible since the lasso performs particularly well when there is a subset of true coefficients that are small or exactly zero, as appears to be the case with some of the housing price predictors. 
 
 ## Question (e): Retrain model using glmnet
 
