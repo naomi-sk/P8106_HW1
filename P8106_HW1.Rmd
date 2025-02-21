@@ -386,6 +386,55 @@ The better performance of the lasso with 1SE compared to methods like elastic ne
 
 ```{r}
 
+# Set seed for reproducibility
+
+set.seed(29)
+
+# Matrix of training data predictors for glmnet
+
+x.train <- model.matrix(Sale_Price ~ ., training_data)[,-1]  
+
+y.train <- training_data$Sale_Price
+
+# Matrix of predictors for test data
+
+x.test <- model.matrix(Sale_Price ~ ., testing_data)[,-1] 
+
+
+# Fit lasso
+
+lasso_glmnet <- glmnet(x.train, y.train, 
+                       alpha = 1, 
+                       lambda = exp(seq(6, -5, length = 100)))
+
+# Next, cross-validation for optimal lambda
+
+cv.lasso <- cv.glmnet(x.train, y.train,
+                      alpha = 1,
+                      lambda = exp(seq(6, -5, length = 100)))
+
+plot(cv.lasso)
+
+# Best lambda that minimises RMSE
+
+print(cv.lasso$lambda.min)
+
+# Coefficients at optimal lambda
+
+predict(cv.lasso, s = "lambda.min", type = "coefficients")
 
 ```
+
+The final model includes 37 predictors, which is the same as the number of predictors identified in (a) using lasso (caret method).
+
+Compared to the caret method implemented in Question (a), the tuning parameter lambda is notably different (glmnet = 43.71878, and caret = 68.18484). Both methods do use 10-fold cross validation to find the optimal lambda.
+
+However, in glmnet, the built in cross validation function cv.glmnet() performs 10-fold cross validation once, computing RMSE for each lambda based on the 10 validation sets (Hastie et al., 2024). Whereas the caret package's trainControl(method = "cv", number = 10) also applies 10-fold cross validation, but averages the RMSE obtained across multiple resampling instances (Kuhn, 2020).
+
+## References
+
+Kuhn, M. (2020). Caret package documentation.
+
+Hastie, T., Tibshirani, R., & Friedman, J. (2024). An Introduction to glmnet.
+
 
