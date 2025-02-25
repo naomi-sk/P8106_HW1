@@ -298,7 +298,7 @@ The test error for the 1SE rule elastic net model is **426357707**.
 
 ## Question (c): Partial least squares
 
-I proceeded with fitting the partial least squares model.
+I proceeded with fitting the partial least squares model using caret.
 
 ```{r}
 
@@ -306,72 +306,57 @@ I proceeded with fitting the partial least squares model.
 
 set.seed(29)
 
-# Fitting the model
+# Fit pls model using caret
 
-pls_mod <- plsr(Sale_Price ~ .,
-                data = training_data,
-                scale = TRUE,
-                validation = "CV")
-
-summary(pls_mod)
+pls_fit <- train(Sale_Price ~ ., 
+                 data = training_data,
+                 method = "pls",
+                 tuneGrid = data.frame(ncomp = 1:19), 
+                 trControl = ctrl1,
+                 preProcess = c("center", "scale")) 
 
 # Determine the optimal number of components
 
-cv_mse <- RMSEP(pls_mod)
+pls_ncomp <- pls_fit$bestTune$ncomp
 
-ncomp_cv <- which.min(cv_mse$val[1,,]) - 1
+print(pls_ncomp)
 
-# Optimal number of components
+# Predict on test data
 
-print(ncomp_cv)
+predy_caret <- predict(pls_fit, newdata = testing_data)
 
-```
+# Find Test MSE
 
-Based on the computation above, the optimal number of components is **8**. 
+caret_test_mse <- mean((testing_data$Sale_Price - predy_caret)^2)
 
-```{r}
+print(caret_test_mse) 
 
-# Set seed for reproducibility
-
-set.seed(29)
-
-# Calculate Test MSE
-
-y2 <- testing_data$Sale_Price
-
-predy2_pls <- predict(pls_mod, newdata = testing_data,
-                      ncomp = ncomp_cv)
-
-pls_test_mse <- mean((y2 - predy2_pls)^2)
-
-print(pls_test_mse)
 
 ```
 
-The test error for this model is **440217938**.
+Based on the computation above, the optimal number of components is **8**. The test error for this model is **440217938**.
 
 ## Question (d): Choose the best model for predicting the response and explain your choice.
 
 
 ```{r}
 
-# Comparison table of models
-# Code from: https://bookdown.org/yihui/rmarkdown-cookbook/kable.html
+# Comparison of models using Training Data
 
-# Convert MSE to RMSE for comparison
-enet_test_rmse <- sqrt(enet_test_mse)
-pls_test_rmse <- sqrt(pls_test_mse)
-enet_1se_test_rmse <- sqrt(enet_1se_test_mse)
+set.seed(29)
 
+lm.fit <- train(Sale_Price ~ .,
+                data = training_data,
+                method = "lm",
+                trControl = ctrl1)
 
-comparison_table <- tibble(
-  Model = c("Lasso", "Lasso 1SE", "Elastic Net", "Elastic Net 1SE", "Partial Least Square Regression"),
-  Test_Error = c(lasso_rmse, lasso_1SE_rmse, enet_test_rmse, enet_1se_test_rmse, pls_test_rmse)
-)
+resamp <- resamples(list(lasso = lasso.fit, lasso_1SE = lasso_1se_fit, elastic_net = enet.fit, elastic_net_1SE = enet_1se_fit, partial_least_squares = pls_fit))
 
-# Using kable to present table
+summary(resamp)
 
-knitr::kable(comparison_table)
+# Plot RMSE
+
+parallelplot(resamp, metric = "RMSE")
 
 ```
 
