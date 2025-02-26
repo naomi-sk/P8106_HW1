@@ -350,7 +350,11 @@ lm.fit <- train(Sale_Price ~ .,
                 method = "lm",
                 trControl = ctrl1)
 
-resamp <- resamples(list(lasso = lasso.fit, lasso_1SE = lasso_1se_fit, elastic_net = enet.fit, elastic_net_1SE = enet_1se_fit, partial_least_squares = pls_fit))
+resamp <- resamples(list(lasso = lasso.fit, 
+                         lasso_1SE = lasso_1se_fit, 
+                         elastic_net = enet.fit, 
+                         elastic_net_1SE = enet_1se_fit, 
+                         partial_least_squares = pls_fit))
 
 summary(resamp)
 
@@ -360,11 +364,36 @@ parallelplot(resamp, metric = "RMSE")
 
 ```
 
-Based on the comparison table, the lasso model with the 1SE rule applied appears to perform the best as it has the lowest test error (RMSE = 20511.62) while undertaking feature selection. As discussed in class, the 1SE rule chooses the most regularised model whose error is within one standard error of the minimum, which allows for a parsimonious model that may generalise better to new data while maintaining predictive performance.
+Based on this plot and resampling summary, **elastic net** appears to have the lowest training RMSE range, with a mean RMSE of 22868.74.
 
-In the case of predicting the housing sale price, the lasso with 1SE model removed various less important predictors during variable selection, which reduced the overall complexity of the model while keeping good predictive performance. This aligns with the bias-variance tradeoff, in which with increasing regularisation (lambda), bias tends to increase but variance decreases, leading to improved generalisation.
+```{r}
 
-The better performance of the lasso with 1SE compared to methods like elastic net and partial least squares regression suggests that this method is suitable as it provided the optimal balance in the bias-variance tradeoff for this housing price prediction task. This would be plausible since the lasso performs particularly well when there is a subset of true coefficients that are small or exactly zero, as appears to be the case with some of the housing price predictors. 
+# Comparison table of models
+# Code from: https://bookdown.org/yihui/rmarkdown-cookbook/kable.html
+
+set.seed(29)
+
+# Convert MSE to RMSE for comparison
+enet_test_rmse <- sqrt(enet_test_mse)
+pls_test_rmse <- sqrt(caret_test_mse)
+enet_1se_test_rmse <- sqrt(enet_1se_test_mse)
+
+
+comparison_table <- tibble(
+  Model = c("Lasso", "Lasso 1SE", "Elastic Net", "Elastic Net 1SE", "Partial Least Square Regression"),
+  Test_RMSE = c(lasso_rmse, lasso_1SE_rmse, enet_test_rmse, enet_1se_test_rmse, pls_test_rmse)
+)
+
+# Using kable to present table
+
+knitr::kable(comparison_table)
+
+
+```
+
+Based on this, the lowest testing RMSE is from the Lasso 1SE model (RMSE = 20511.62).
+
+Since model selection should be based on training RMSE (to avoid bias from the test set), Elastic Net is the best model for prediction in this case, even though the lasso 1SE model has a lower testing RMSE.
 
 ## Question (e): Retrain model using glmnet
 
@@ -421,5 +450,4 @@ However, in glmnet, the built in cross validation function cv.glmnet() performs 
 Kuhn, M. (2020). Caret package documentation.
 
 Hastie, T., Tibshirani, R., & Friedman, J. (2024). An Introduction to glmnet.
-
 
